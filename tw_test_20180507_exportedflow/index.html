@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="jquery.min.js"></script>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    .prototype-container {
+      position: absolute;
+      height: 100%;
+      overflow: scroll;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .artboard {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      display: none;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .12);
+      background-size: contain;
+      overflow: hidden; /* don't allow hotspots to overflow */
+    }
+
+    .artboard.is-active {
+      opacity: 1;
+      display: block;
+    }
+
+    .hotspot {
+      cursor: pointer;
+      position: absolute;
+      opacity: 0;
+    }
+
+    body[can-show-hotspots] .hotspot {
+      background-color: rgba(239, 108, 0, .2);
+      box-shadow:
+          0 0 0 3px rgba(239, 108, 0, .5) inset,
+          0 4px 8px rgba(239, 108, 0, .25);
+    }
+
+    .highlight-hotspots .hotspot {
+      animation: hotspotAnimation .6s ease;
+    }
+
+    @keyframes hotspotAnimation {
+      0% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body can-show-hotspots>
+
+  <div class="prototype-container">
+  </div>
+
+  <script>
+
+    class Proto {
+      constructor(prototypeData) {
+        this.prototypeData = prototypeData;
+        this.buildUi();
+      }
+
+      buildUi() {
+        this.buildArtboards();
+
+        if (this.prototypeData.title) {
+          document.title = this.prototypeData.title;
+        }
+
+        $(window).on('hashchange', () => {
+          this.setArtboardVisible(this.getUrlInfo().artboardId);
+        });
+
+        $(document).click(() => {
+          if (this.shouldSuppressHotspotReveal_) {
+            return;
+          }
+
+          $(document.body).removeClass('highlight-hotspots');
+          let f = document.body.offsetWidth;
+          $(document.body).addClass('highlight-hotspots');
+        });
+
+        $(window).on('resize', () => this.resize());
+
+        this.setArtboardVisible(this.getUrlInfo().artboardId);
+
+        this.resize();
+      }
+
+      resize() {
+        let xScale = window.innerHeight / this.prototypeHeight;
+        let yScale = window.innerWidth / this.prototypeWidth;
+        $('.prototype-container').css('zoom', Math.min(1, Math.min(xScale, yScale)));
+      }
+
+      getUrlInfo() {
+        let hash = window.location.hash;
+
+        return {
+          artboardId: hash ? hash.substring(1) : this.prototypeData.flowStartArtboardId,
+        };
+      }
+
+      buildArtboards() {
+        Object.keys(this.prototypeData.artboards).forEach(id => {
+          let artboardData = this.prototypeData.artboards[id];
+          let $artboard = $('<div>')
+              .addClass('artboard')
+              .attr('data-artboard-id', id)
+              .css({
+                backgroundImage: `url(${id}.png)`,
+                width: artboardData.width,
+                height: artboardData.height,
+              })
+              .appendTo('.prototype-container');
+
+          if (id == this.prototypeData.flowStartArtboardId) {
+            // this is the start artboard
+            this.prototypeWidth = artboardData.width;
+            this.prototypeHeight = artboardData.height;
+            $('.prototype-container').css({
+              width: this.prototypeWidth,
+              height: this.prototypeHeight
+            });
+          }
+
+          artboardData.hotspots.forEach(hotspotData => {
+            let $hotspot = $('<div>')
+              .addClass('hotspot')
+              .attr('data-artboard-id', id)
+              .css({
+                left: hotspotData.rectangle.x,
+                top: hotspotData.rectangle.y,
+                width: hotspotData.rectangle.width,
+                height: hotspotData.rectangle.height,
+              })
+              .appendTo($artboard);
+            $hotspot.click(event => {
+              this.gotoTarget(hotspotData.target)
+              event.stopPropagation();
+            });
+          });
+        });
+      }
+
+      gotoTarget(target) {
+        if (target == 'back') {
+          history.back();
+          return;
+        }
+
+        this.gotoArtboard(target);
+      }
+
+      gotoArtboard(artboardId) {
+        window.location.href= '#' + artboardId;
+        $('.prototype-container').scrollTo(0, 0);
+      }
+
+      setArtboardVisible(artboardId) {
+        $(document.body).removeClass('highlight-hotspots');
+        $('.artboard').removeClass('is-active');
+        $(`.artboard[data-artboard-id="${artboardId}"]`).addClass('is-active');
+      }
+    }
+
+  </script>
+  <script>
+    new Proto(
+      {"title":"TW test 20180414","flowStartArtboardId":"CE724AD3-FDDB-47BE-9303-B9EF3310218B","artboards":{"CE724AD3-FDDB-47BE-9303-B9EF3310218B":{"title":"LG G5 load screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":0,"y":0,"width":480,"height":853},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]},"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858":{"title":"LG G5 start screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"17C17D33-D7D0-4783-B810-558FFF92B1B7"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"17C17D33-D7D0-4783-B810-558FFF92B1B7":{"title":"LG G5 start screen select buttons","width":480,"height":853,"hotspots":[{"rectangle":{"x":45,"y":683,"width":117,"height":117},"target":"AB7138EA-427A-4D82-9DCE-84D31869BD6B"},{"rectangle":{"x":185,"y":625,"width":117,"height":117},"target":"9847C67C-859A-4061-8DD1-C30DE8064535"},{"rectangle":{"x":323,"y":684,"width":117,"height":117},"target":"5F96C4B7-893F-401A-811B-2FA14BFEA00C"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"ED786800-0654-418F-94AA-54706498CDD1":{"title":"LG G5 help main screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":0,"y":182,"width":485,"height":128},"target":"B9CE740F-B3B7-40F3-9C09-F78290B4C0EB"},{"rectangle":{"x":-5,"y":320,"width":485,"height":128},"target":"9C2F2820-D9A3-49F0-B4CC-BA96C90A7F52"},{"rectangle":{"x":0,"y":459,"width":485,"height":120},"target":"A4CF65E8-16B8-4344-837C-F732CA765623"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"}]},"AB7138EA-427A-4D82-9DCE-84D31869BD6B":{"title":"LG G5 set space destination - none adjusted","width":480,"height":853,"hotspots":[{"rectangle":{"x":429,"y":398,"width":51,"height":48},"target":"ACE1B326-45E9-4219-A9DA-1C99845DC865"},{"rectangle":{"x":429,"y":456,"width":51,"height":48},"target":"258706EF-8C64-4CCB-996B-896AE7202DAA"},{"rectangle":{"x":429,"y":512,"width":51,"height":48},"target":"27E8AB73-3348-4ED1-8209-A3398608A28E"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"},{"rectangle":{"x":321,"y":684,"width":117,"height":117},"target":"C4C0EDE6-B287-4D53-9C63-5BEAEEAA8009"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"9847C67C-859A-4061-8DD1-C30DE8064535":{"title":"LG G5 set frozen time","width":480,"height":853,"hotspots":[{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"5F96C4B7-893F-401A-811B-2FA14BFEA00C":{"title":"LG G5 set time destination - none adjusted","width":480,"height":853,"hotspots":[{"rectangle":{"x":429,"y":182,"width":51,"height":48},"target":"3E0986FD-B98A-4CFB-B62F-5FF7ED3EE2C0"},{"rectangle":{"x":429,"y":240,"width":51,"height":48},"target":"E83B7D84-F9AE-4E5D-BED8-28E7C69639DD"},{"rectangle":{"x":429,"y":296,"width":51,"height":48},"target":"6A890A3C-D133-4B79-983D-DD268FBDAE51"},{"rectangle":{"x":323,"y":684,"width":117,"height":117},"target":"3E0986FD-B98A-4CFB-B62F-5FF7ED3EE2C0"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"B9CE740F-B3B7-40F3-9C09-F78290B4C0EB":{"title":"LG G5 help introduction screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"9C2F2820-D9A3-49F0-B4CC-BA96C90A7F52":{"title":"LG G5 help space travel screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"A4CF65E8-16B8-4344-837C-F732CA765623":{"title":"LG G5 help time travel screen","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"ED786800-0654-418F-94AA-54706498CDD1"}]},"ACE1B326-45E9-4219-A9DA-1C99845DC865":{"title":"LG G5 set space destination - adjust latitude","width":480,"height":853,"hotspots":[{"rectangle":{"x":429,"y":456,"width":51,"height":48},"target":"258706EF-8C64-4CCB-996B-896AE7202DAA"},{"rectangle":{"x":429,"y":512,"width":51,"height":48},"target":"27E8AB73-3348-4ED1-8209-A3398608A28E"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"B9CE740F-B3B7-40F3-9C09-F78290B4C0EB"},{"rectangle":{"x":321,"y":684,"width":117,"height":117},"target":"C4C0EDE6-B287-4D53-9C63-5BEAEEAA8009"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]},"258706EF-8C64-4CCB-996B-896AE7202DAA":{"title":"LG G5 set space destination - adjust longitude","width":480,"height":853,"hotspots":[{"rectangle":{"x":429,"y":398,"width":51,"height":48},"target":"ACE1B326-45E9-4219-A9DA-1C99845DC865"},{"rectangle":{"x":429,"y":512,"width":51,"height":48},"target":"27E8AB73-3348-4ED1-8209-A3398608A28E"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":321,"y":684,"width":117,"height":117},"target":"C4C0EDE6-B287-4D53-9C63-5BEAEEAA8009"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"9C2F2820-D9A3-49F0-B4CC-BA96C90A7F52"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]},"27E8AB73-3348-4ED1-8209-A3398608A28E":{"title":"LG G5 set space destination - adjust altitude","width":480,"height":853,"hotspots":[{"rectangle":{"x":429,"y":398,"width":51,"height":48},"target":"ACE1B326-45E9-4219-A9DA-1C99845DC865"},{"rectangle":{"x":429,"y":456,"width":51,"height":48},"target":"258706EF-8C64-4CCB-996B-896AE7202DAA"},{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"9C2F2820-D9A3-49F0-B4CC-BA96C90A7F52"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"},{"rectangle":{"x":321,"y":684,"width":117,"height":117},"target":"C4C0EDE6-B287-4D53-9C63-5BEAEEAA8009"}]},"C4C0EDE6-B287-4D53-9C63-5BEAEEAA8009":{"title":"LG G5 set space destination - joystick mode","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"},{"rectangle":{"x":321,"y":684,"width":117,"height":117},"target":"AB7138EA-427A-4D82-9DCE-84D31869BD6B"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"9C2F2820-D9A3-49F0-B4CC-BA96C90A7F52"}]},"3E0986FD-B98A-4CFB-B62F-5FF7ED3EE2C0":{"title":"LG G5 set time destination - adjust date","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"A4CF65E8-16B8-4344-837C-F732CA765623"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]},"E83B7D84-F9AE-4E5D-BED8-28E7C69639DD":{"title":"LG G5 set time destination - adjust time","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"A4CF65E8-16B8-4344-837C-F732CA765623"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]},"6A890A3C-D133-4B79-983D-DD268FBDAE51":{"title":"LG G5 set time destination - adjust time zone","width":480,"height":853,"hotspots":[{"rectangle":{"x":148,"y":708,"width":184,"height":184},"target":"back"},{"rectangle":{"x":409,"y":39,"width":104,"height":102},"target":"A4CF65E8-16B8-4344-837C-F732CA765623"},{"rectangle":{"x":42,"y":683,"width":117,"height":117},"target":"2C74BCD4-CB06-4DF1-9C5A-F0DCDC543858"}]}}}
+    );
+  </script>
+
+</body>
+</html>
