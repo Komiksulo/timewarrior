@@ -159,7 +159,7 @@ ul li:hover a {
 .banner {
 	background-color: #2D9AB7;
 	background-image: url(../images/parallax_tw_bkgnd_1.jpg);
-	height: 400px;
+	height: 300px;
 	background-attachment: fixed;
 	background-size: cover;
 	background-repeat: no-repeat;
